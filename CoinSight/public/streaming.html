@@ -1,0 +1,87 @@
+<!DOCTYPE html PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html>
+  <head>
+    <title>Streaming Crypto Prices</title>
+    <link type="text/css" rel="stylesheet" href="table.css" />
+    <style>
+      .header {
+        text-align: center;
+        margin: 20px auto;
+        display: block;
+        box-shadow: 10px 10px 5px #888888;
+        border: 1px solid #000000;
+        border-radius: 9px;
+        background: white;
+        width: 80%;
+        padding: 10px;
+        font-size: 1.5em;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      Streaming Crypto Prices
+    </div>
+    <p style="bottom-margin:10px">
+      <h3 style="text-align:center;">BTC-USD</h3>
+      <table id="btc-table" class="CSS_Table_Example" style="width:60%;margin:auto;">
+        <tr><td>Pair</td><td>Date</td><td>Close</td><td>Volume</td></tr>
+      </table>
+      <h3 style="text-align:center;">ETH-USD</h3>
+      <table id="eth-table" class="CSS_Table_Example" style="width:60%;margin:auto;">
+        <tr><td>Pair</td><td>Date</td><td>Close</td><td>Volume</td></tr>
+      </table>
+    </p>
+  </body>
+  <script>
+    const btcTable = document.getElementById('btc-table');
+    const ethTable = document.getElementById('eth-table');
+    const backEndPort = 8890;
+
+    function connectWebSocket() {
+      // Connect to backend to get Coinbase streaming market data via websocket
+      const ws = new WebSocket(`ws://${window.location.hostname}:${backEndPort}`);
+      
+      ws.onopen = function() {
+        console.log(`WebSocket connection to ws://${window.location.hostname}:${backEndPort} opened`);
+      };
+
+      ws.onmessage = function(event) {
+        // Render data to the screen
+        console.log('WebSocket message received:', event.data);
+        const data = JSON.parse(event.data);
+        const newRow = document.createElement('tr');
+        newRow.innerHTML = `
+          <td>${data.pair}</td>
+          <td>${data.price_date}</td>
+          <td>${data.close}</td>
+          <td>${data.volume}</td>
+        `;
+
+        if (data.pair === 'BTC-USD') {
+          btcTable.insertBefore(newRow, btcTable.rows[1]);
+          if (btcTable.rows.length > 10) {
+            btcTable.deleteRow(10);
+          }
+        } else if (data.pair === 'ETH-USD') {
+          ethTable.insertBefore(newRow, ethTable.rows[1]);
+          if (ethTable.rows.length > 10) {
+            ethTable.deleteRow(10);
+          }
+        }
+      };
+
+      ws.onclose = function() {
+        console.log('WebSocket connection closed, retrying..');
+        setTimeout(connectWebSocket, 1000);
+      };
+
+      ws.onerror = function(error) {
+        console.error('WebSocket error:', error);
+      };
+    }
+
+    connectWebSocket();
+  </script>
+</html>
